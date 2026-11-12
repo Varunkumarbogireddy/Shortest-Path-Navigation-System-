@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Andhra Pradesh Route Finder</title>
+<style>
+*{box-sizing:border-box} body{margin:0;font-family:Segoe UI,Arial;background:#eef5f5;color:#173535}
+.app{max-width:1050px;margin:32px auto;background:white;min-height:650px;border-radius:18px;box-shadow:0 18px 50px #0002;overflow:hidden}
+header{background:linear-gradient(135deg,#006d6d,#009b91);color:white;padding:28px 38px}
+header h1{margin:0;font-size:30px} header p{margin:7px 0 0;opacity:.9}
+main{padding:34px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{border:1px solid #c9dddd;border-radius:14px;padding:24px;background:#fbffff}
+button{border:0;border-radius:10px;padding:14px 18px;background:#007f7a;color:white;font-weight:700;cursor:pointer;font-size:15px}
+button.secondary{background:white;color:#006d6d;border:1px solid #8dbbbb}
+select{width:100%;padding:13px;border:1px solid #b9cece;border-radius:9px;font-size:15px;background:white}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:20px}.hidden{display:none}
+h2{color:#006d6d}.cities{columns:2;line-height:1.9}.network{max-height:390px;overflow:auto}
+.edge{padding:9px;border-bottom:1px solid #e5eeee}.result{background:#effff3;border:1px solid #87cf9b;border-radius:12px;padding:22px;text-align:center}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}.stat{background:#eef7ff;border-radius:12px;padding:18px;text-align:center}
+.error{background:#fff0f0;color:#c22;border:1px solid #f2a2a2;padding:18px;border-radius:10px;text-align:center}
+@media(max-width:700px){.grid,.row{grid-template-columns:1fr}.cities{columns:1}.app{margin:0;border-radius:0}}
+</style>
+</head>
+<body><div class="app">
+<header><h1>ANDHRA PRADESH ROUTE FINDER</h1><p>Dijkstra Algorithm • Shortest Route Application</p></header>
+<main>
+<section id="home">
+<h2>Choose an option</h2>
+<div class="grid">
+<div class="card"><h3>🏙️ Available Cities</h3><p>View all 20 cities in the graph.</p><button onclick="show('cities')">View Cities</button></div>
+<div class="card"><h3>🔗 Road Network</h3><p>View connected cities and weights.</p><button onclick="show('network')">View Network</button></div>
+<div class="card"><h3>📍 Shortest Route</h3><p>Find the shortest path between two cities.</p><button onclick="show('finder')">Find Route</button></div><div class="card"><h3>🗺️ Route Map</h3><p>View the road graph visually on a map-style canvas.</p><button onclick="show('map');drawMap()">View Map</button></div>
+</div></section>
+<section id="cities" class="hidden"><h2>Available Cities</h2><div id="cityList" class="card cities"></div><br><button class="secondary" onclick="show('home')">← Back</button></section>
+<section id="network" class="hidden"><h2>Road Network</h2><div id="edgeList" class="card network"></div><br><button class="secondary" onclick="show('home')">← Back</button></section>
+<section id="map" class="hidden"><h2>Route Map</h2><div class="card"><canvas id="mapCanvas" width="950" height="560" style="width:100%;border-radius:12px;background:linear-gradient(#eaf7ef,#f7fbef)"></canvas></div><br><button class="secondary" onclick="show('home')">← Back</button></section>
+<section id="finder" class="hidden"><h2>Find Shortest Route</h2><div class="card"><div class="row"><div><label>Source City</label><select id="src"></select></div><div><label>Destination City</label><select id="dest"></select></div></div><br><button onclick="findRoute()">🔍 Find Shortest Route</button><div id="output" style="margin-top:22px"></div></div><br><button class="secondary" onclick="show('home')">← Back</button></section>
+</main></div>
+<script>
+const names=["","Anantapur","Sri Sathya Sai","Kadiri","Kadapa","Tirupati","Hindupur","Guntakal","Rajahmundry","East Godavari","West Godavari","Chittoor","Kurnool","Nellore","Prakasam","Lepakshi","Nandyal","Vizag","Vijayawada","Guntur","Krishna"];
+const edges=[[1,2,35],[2,3,25],[3,4,210],[4,5,60],[4,6,45],[5,7,95],[7,9,90],[9,11,85],[6,8,95],[8,10,120],[10,12,25],[12,14,55],[10,13,210],[13,15,270],[14,16,135],[14,17,150],[10,17,145],[17,19,70],[19,20,60],[16,18,10],[18,20,220],[11,16,270]];
+const graph=Array.from({length:21},()=>[]);
+edges.forEach(([u,v,w])=>{graph[u].push([v,w]);graph[v].push([u,w])});
+function show(id){["home","cities","network","map","finder"].forEach(x=>document.getElementById(x).classList.add("hidden"));document.getElementById(id).classList.remove("hidden")}
+cityList.innerHTML=names.slice(1).map((n,i)=>`<div><b>${i+1}</b> → ${n}</div>`).join("");
+edgeList.innerHTML=edges.map(([u,v,w])=>`<div class="edge">${names[u]} ↔ ${names[v]} <b style="float:right">${w} km</b></div>`).join("");
+const opts=names.slice(1).map((n,i)=>`<option value="${i+1}">${i+1} - ${n}</option>`).join("");src.innerHTML=opts;dest.innerHTML=opts;dest.value=20;
+
+const pos={1:[90,470],2:[145,430],3:[210,400],4:[300,350],5:[240,260],6:[380,390],7:[315,210],8:[465,350],9:[400,155],10:[570,310],11:[500,105],12:[650,350],13:[620,225],14:[730,330],15:[690,150],16:[810,285],17:[755,210],18:[875,320],19:[835,150],20:[910,210]};
+let activePath=[];
+function drawMap(){
+ const c=document.getElementById("mapCanvas"),ctx=c.getContext("2d");ctx.clearRect(0,0,c.width,c.height);
+ ctx.fillStyle="#dff1df";ctx.beginPath();ctx.moveTo(70,510);ctx.bezierCurveTo(130,300,280,130,500,80);ctx.bezierCurveTo(700,40,900,110,930,250);ctx.bezierCurveTo(900,390,700,500,430,520);ctx.closePath();ctx.fill();
+ ctx.lineWidth=3;ctx.strokeStyle="#8ca7a2";
+ edges.forEach(([u,v,w])=>{let [x1,y1]=pos[u],[x2,y2]=pos[v];ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.fillStyle="#405b58";ctx.font="12px Segoe UI";ctx.fillText(w+" km",(x1+x2)/2,(y1+y2)/2)});
+ if(activePath.length>1){ctx.lineWidth=7;ctx.strokeStyle="#e84b3c";for(let i=0;i<activePath.length-1;i++){let [x1,y1]=pos[activePath[i]],[x2,y2]=pos[activePath[i+1]];ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}}
+ for(let i=1;i<21;i++){let [x,y]=pos[i];ctx.beginPath();ctx.arc(x,y,9,0,Math.PI*2);ctx.fillStyle=activePath.includes(i)?"#d92f25":"#007f7a";ctx.fill();ctx.fillStyle="#173535";ctx.font="bold 12px Segoe UI";ctx.fillText(names[i],x+12,y+4)}
+}
+
+function findRoute(){
+ const s=+src.value,d=+dest.value,dist=Array(21).fill(Infinity),parent=Array(21).fill(-1),used=Array(21).fill(false);dist[s]=0;
+ for(let k=1;k<21;k++){let u=-1;for(let i=1;i<21;i++)if(!used[i]&&(u<0||dist[i]<dist[u]))u=i;if(u<0||dist[u]===Infinity)break;used[u]=true;if(u===d)break;
+ for(const [v,w] of graph[u])if(dist[u]+w<dist[v]){dist[v]=dist[u]+w;parent[v]=u}}
+ if(dist[d]===Infinity){output.innerHTML='<div class="error">ⓘ No Route Found</div>';return}
+ let p=[];for(let n=d;n!=-1;n=parent[n])p.push(n);p.reverse();activePath=p;
+ output.innerHTML=`<div class="result"><h3>🏆 SHORTEST ROUTE FOUND</h3><p style="font-size:18px">${p.map(x=>names[x]).join(" → ")}</p></div><div class="stats"><div class="stat"><b>Total Distance</b><h2>${dist[d]} km</h2></div><div class="stat"><b>Cities Traversed</b><h2>${p.length}</h2></div></div><br><button onclick="show(\'map\');drawMap()">🗺️ View Route on Map</button>`;
+}
+</script></body></html>
